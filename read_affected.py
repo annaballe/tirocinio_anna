@@ -1,3 +1,4 @@
+import os
 import sys
 
 def outcome_patient(affected_txt, output_txt):
@@ -34,12 +35,19 @@ def outcome_patient(affected_txt, output_txt):
 if __name__ == "__main__":
     # Ensure that the correct number of arguments is provided
     if len(sys.argv) != 3:
-        print("Usage: python outcome_patient.py <path_to_affected_samples> <output_file_path>")
+        print("Usage: python outcome_patient.py <input_file_name> <output_file_name>")
         sys.exit(1)
 
-    # Extracting input and output paths from command-line arguments
-    affected_txt = sys.argv[1]
-    output_txt = sys.argv[2]
+    # Extracting input and output filenames from command-line arguments
+    input_file_name = sys.argv[1]
+    output_file_name = sys.argv[2]
+
+    # Get the current working directory
+    current_directory = os.getcwd()
+
+    # Construct full paths for the input and output files
+    affected_txt = os.path.join(current_directory, input_file_name)
+    output_txt = os.path.join(current_directory, output_file_name)
 
     # Call the function to process the file
     outcome_patient(affected_txt, output_txt)
