@@ -2,6 +2,7 @@ import os
 import sys
 import pandas as pd
 import gzip
+import subprocess
 
 def process_vcf_files(file_paths, output_file, output_dir='./output'):
     """
