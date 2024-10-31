@@ -5,14 +5,6 @@ import gzip
 import subprocess
 
 def process_vcf_files(file_paths, output_file, output_dir='./output'):
-    """
-    Process multiple VCF .gz files and merge them into a single DataFrame.
-    
-    Args:
-        file_paths: List of paths to VCF .gz files or folder.
-        output_file: Name of the output file.
-        output_dir: Directory where the output file will be saved.
-    """
     dataframes = []  # List to hold all filtered DataFrames
 
     for file in file_paths:
@@ -20,17 +12,14 @@ def process_vcf_files(file_paths, output_file, output_dir='./output'):
         if os.path.isdir(file):
             gz_files = [os.path.join(file, f) for f in os.listdir(file) if f.endswith('.gz')]
         else:
-            # If file names are provided, assume they are in the current directory
             gz_files = [file] if file.endswith('.gz') else []
 
-        # Now process each file (whether found in folder or provided directly)
         for gz_file in gz_files:
             print(f"Processing file: {gz_file}")
 
             vcf_data = []
             columns = []
 
-            # Open and read the .gz file
             with gzip.open(gz_file, 'rt') as f:
                 for line in f:
                     if line.startswith("#"):
@@ -48,19 +37,15 @@ def process_vcf_files(file_paths, output_file, output_dir='./output'):
             filtered_df[['REP_UNIT', 'VAR_ID']] = filtered_df['INFO'].str.extract(r'RU=(.*?);VARID=(.*);')
             filtered_df = filtered_df.drop(columns=['INFO'], errors='ignore')
 
-            # Extract the last column and process it
             last_column = vcf_df.columns[-1]
             filtered_df[last_column] = filtered_df[last_column].str.split(':').str[0]
-            # Ensure the last column remains in the last position
             cols = list(filtered_df.columns)
             cols.remove(last_column)
             cols.append(last_column)
             filtered_df = filtered_df[cols]
 
-            # Store the filtered DataFrame to list
             dataframes.append(filtered_df)
 
-    # Merge all DataFrames
     if dataframes:
         merged_df = dataframes[0]
         for df in dataframes[1:]:
@@ -68,37 +53,30 @@ def process_vcf_files(file_paths, output_file, output_dir='./output'):
 
         merged_df = merged_df.fillna(".")
 
-        # Count occurrences of '0/1' in the merged DataFrame
-        def count_zeros_ones(row):
-            return sum(val == '0/1' for val in row[6:])  # Adjust index if needed
+        # Define a function to count occurrences of '1' in the genotypes from the 8th column onward
+        def count_ones(row):
+            # Count occurrences of '1' in each row starting from the 8th column
+            return sum((genotype.count('1'))+(genotype.count('2')) for genotype in row[6:])
 
-        merged_df['AC'] = merged_df.apply(count_zeros_ones, axis=1)
+        # Apply the function to calculate allele counts and store them in the 'AC' column
+        merged_df['AC'] = merged_df.apply(count_ones, axis=1)
 
-        # Rearrange the DataFrame to place 'AC' as the 7th column
         cols = list(merged_df.columns)
         if 'AC' in cols:
             cols.remove('AC')
-        cols.insert(6, 'AC')  # Insert 'AC' at the 7th position (index 6)
+        cols.insert(6, 'AC')
         merged_df = merged_df[cols]
 
-    # Set output file path
     output_txt_path = os.path.join(output_dir, output_file)
-    
-    # Save merged DataFrame to output file
     merged_df.to_csv(output_txt_path, sep='\t', index=False)
     print(f"Merged DataFrame saved to {output_txt_path}")
 
-    # Check if the merged output file has tab-separated column names
     check_tab_separated_columns(output_txt_path)
 
 def check_tab_separated_columns(file_path):
-    """
-    Function to check if the first line (header) of the file has tab-separated columns.
-    """
     with open(file_path, 'r') as f:
-        header_line = f.readline().strip()  # Read the first line (header)
+        header_line = f.readline().strip()
 
-    # Check if the column names are separated by tabs
     if '\t' in header_line:
         print("Column names are tab-separated.")
     else:
@@ -110,20 +88,18 @@ def main():
         print("Or: python my_script.py --folder <folder_name> --output <output_file>")
         sys.exit(1)
 
-    # Get the list of files or folder from command-line arguments
     if sys.argv[1] == '--files':
         files = sys.argv[2:-2]
     elif sys.argv[1] == '--folder':
         folder = sys.argv[2]
         files = [folder]
 
-    # Get output file name from arguments
     if '--output' in sys.argv:
         output_file = sys.argv[sys.argv.index('--output') + 1]
     else:
-        output_file = 'merged_output.txt'  # Default name if not provided
+        output_file = 'merged_output.txt'
 
-    output_dir = './output'  # Default output directory
+    output_dir = './output'
     os.makedirs(output_dir, exist_ok=True)
 
     process_vcf_files(files, output_file, output_dir=output_dir)
