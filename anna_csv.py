@@ -1,79 +1,79 @@
 import os
-import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import pandas as pd
 
-# Specify the parent directory containing all folders with CSV files
-parent_directory = "./"  # Change this to the actual path if needed
-output_directory = "output_anna"  # Directory where output will be saved
+# Define parent directory containing all folders with CSV files
+parent_directory = "./"  # Change this path as needed
 
-# Define target values to look for in the 3rd column
-target_values = ["Biallelic", "Multiallelic", "SNPs", "Ti/Tv ratio"]
+# Define output directory for the box plots
+output_directory = "output_anna"
+os.makedirs(output_directory, exist_ok=True)
 
-# List to store all gathered data for box plotting
-plot_data = []
+# Define target values to look for in the 2nd field
+target_values = ["Total", "Biallelic", "Multiallelic", "SNPs", "Ti/Tv ratio"]
+
+# Dictionary to store data for each target value
+plot_data = {key: [] for key in target_values}
 
 def process_csv_files(parent_directory, target_values):
+    # Traverse through each directory and file
     for root, dirs, files in os.walk(parent_directory):
         for file_name in files:
             if file_name.endswith(".csv"):
                 file_path = os.path.join(root, file_name)
+                
                 try:
-                    # Read CSV file
-                    df = pd.read_csv(file_path, header=None)  # No header row in CSV
+                    with open(file_path, 'r') as f:
+                        for line in f:
+                            # Split line by commas
+                            fields = line.strip().split(',')
 
-                    # Check if the DataFrame has at least 5 columns
-                    if df.shape[1] < 5:
-                        print(f"File {file_name} has less than 5 columns, skipping.")
-                        continue
-                    
-                    # Filter rows where the 3rd column matches any target value
-                    filtered_df = df[df[2].isin(target_values)]  # 3rd column is at index 2
-                    
-                    # Extract data for the box plot from the 5th column (index 4)
-                    for _, row in filtered_df.iterrows():
-                        plot_data.append({
-                            "file_name": file_name,
-                            "variant": row[2],  # 3rd column value
-                            "value": row[4]     # 5th column value
-                        })
+                            # Check if line has enough fields (at least 5)
+                            if len(fields) < 5:
+                                continue
+
+                            # Check if the 2nd field matches any target value
+                            if fields[1] in target_values:
+                                # Add the value in the 5th field to the corresponding target's list
+                                try:
+                                    value = float(fields[4])  # Convert to float for box plotting
+                                    plot_data[fields[1]].append(value)
+                                except ValueError:
+                                    print(f"Non-numeric data in 5th field in {file_name}: {fields[4]}")
+                                    continue
                 
                 except Exception as e:
                     print(f"Error processing {file_name}: {e}")
 
-def create_combined_box_plots(plot_data):
-    # Convert list of dictionaries to DataFrame for plotting
-    plot_df = pd.DataFrame(plot_data)
+def create_box_plots(plot_data, output_directory):
+    # Convert dictionary to DataFrame for plotting
+    plot_df = pd.DataFrame(
+        [(key, value) for key, values in plot_data.items() for value in values],
+        columns=["variant", "value"]
+    )
 
-    # Create a figure with 5 box plots (5 target values)
+    # Create a figure with subplots (1 row, 5 columns for 5 box plots)
     fig, axes = plt.subplots(nrows=1, ncols=5, figsize=(20, 6))
-    
-    # Loop through each target value to create a box plot
-    for idx, variant in enumerate(target_values):
-        variant_df = plot_df[plot_df["variant"] == variant]
-        
-        if variant_df.empty:
+    axes = axes.flatten()
+
+    # Plot each variant type in target_values
+    for idx, (variant, values) in enumerate(plot_data.items()):
+        if values:
+            sns.boxplot(y=plot_df[plot_df["variant"] == variant]["value"], ax=axes[idx])
+            axes[idx].set_title(f"{variant} Box Plot")
+            axes[idx].set_ylabel("Value")
+        else:
             print(f"No data for variant {variant}")
-            continue
 
-        # Create box plot for this variant
-        sns.boxplot(x="variant", y="value", data=variant_df, ax=axes[idx])
-        
-        # Set title and labels for each subplot
-        axes[idx].set_title(f"Box Plot of {variant}")
-        axes[idx].set_xlabel("Variant Type")
-        axes[idx].set_ylabel("Value")
-
-    # Adjust layout for better spacing between plots
+    # Save combined plot as a PNG image
+    combined_output_path = os.path.join(output_directory, "combined_box_plots.png")
     plt.tight_layout()
-
-    # Save combined plot to the specified output directory
-    output_plot_file = os.path.join(output_directory, "combined_box_plots.png")
-    os.makedirs(output_directory, exist_ok=True)  # Ensure output directory exists
-    plt.savefig(output_plot_file)
-    plt.close()
-    print(f"Combined box plot saved to {output_plot_file}")
+    plt.savefig(combined_output_path)
+    plt.close()  # Close the plot to free memory
+    print(f"Combined box plot saved to {combined_output_path}")
 
 # Run the functions
 process_csv_files(parent_directory, target_values)
-create_combined_box_plots(plot_data)
+create_box_plots(plot_data, output_directory)
+
