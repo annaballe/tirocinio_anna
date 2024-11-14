@@ -4,7 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Specify the parent directory containing all folders with CSV files
-parent_directory = "/path/to/your/parent_folder"
+parent_directory = "/path/to/your/parent_folder"  # Adjust this path as needed
 
 # Define the column to search and the specific values to look for
 target_column = "variant"
@@ -12,6 +12,15 @@ target_values = ["total", "another_value", "value1", "value2", "value3", "value4
 
 # List to store all gathered data for box plotting
 plot_data = []
+
+# Specify output path for the combined box plot image
+output_folder = "./output_anna"  # Path to the output directory (same folder where the script is located)
+
+# Create output folder if it doesn't exist
+os.makedirs(output_folder, exist_ok=True)
+
+# Full path for the output plot
+output_plot_file = os.path.join(output_folder, "combined_box_plots.png")
 
 def process_csv_files(parent_directory, target_column, target_values):
     for root, dirs, files in os.walk(parent_directory):
@@ -76,12 +85,6 @@ def create_combined_box_plots(plot_data, output_plot_file):
     plt.savefig(output_plot_file)
     plt.close()  # Close the plot to free memory
     print(f"Combined box plot saved to {output_plot_file}")
-
-# Specify output path for the combined box plot image
-output_plot_file = "/path/to/output_folder/combined_box_plots.png"
-
-# Create output folder if it doesn't exist
-os.makedirs(os.path.dirname(output_plot_file), exist_ok=True)
 
 # Run the functions
 process_csv_files(parent_directory, target_column, target_values)
