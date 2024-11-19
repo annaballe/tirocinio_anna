@@ -3,6 +3,7 @@ import re
 import pandas as pd
 import seaborn as sns
 from matplotlib.ticker import FuncFormatter
+import matplotlib.pyplot as plt
 import pylance
 
 def find_and_extract_data(root_directory):
