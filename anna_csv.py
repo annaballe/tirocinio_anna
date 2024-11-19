@@ -1,79 +1,109 @@
 import os
-import seaborn as sns
-import matplotlib.pyplot as plt
+import re
 import pandas as pd
+import seaborn as sns
+from matplotlib.ticker import FuncFormatter
+import pylance
 
-# Define parent directory containing all folders with CSV files
-parent_directory = "./"  # Change this path as needed
+def find_and_extract_data(root_directory):
+    # Define the file name pattern
+    file_pattern = re.compile(r'^\d+\.vc_metrics\.csv$')
+    # Define the keywords to search for in rows
+    keywords = [",Total,", ",Biallelic,", ",Multiallelic,", ",SNPs,", ",Ti/Tv ratio,"]
+    
+    # Initialize an empty list to hold extracted rows
+    collected_data = []
+    
+    # Traverse the directory and its subdirectories
+    for root, dirs, files in os.walk(root_directory):
+        for file in files:
+            # Check if the file matches the pattern
+            if file_pattern.match(file):
+                file_path = os.path.join(root, file)
+                print(f"Processing file: {file_path}")
+                # Open the file and extract rows containing the keywords
+                with open(file_path, 'r') as f:
+                    for line in f:
+                        if any(keyword in line for keyword in keywords):
+                            collected_data.append(line.strip().split(','))  # Split by comma
+    
+    # Convert collected data to a Pandas DataFrame
+    if collected_data:
+        df = pd.DataFrame(collected_data)
+        return df
+    else:
+        print("No matching data found.")
+        print(pd.DataFrame)
+        return pd.DataFrame()
 
-# Define output directory for the box plots
-output_directory = "output_anna"
-os.makedirs(output_directory, exist_ok=True)
+def format_millions(x, _):
+    """Custom formatter for y-axis to display values in millions."""
+    if x >= 1e6:
+        return f"{x/1e6:.1f} M"
+    return f"{x:.0f}"
 
-# Define target values to look for in the 2nd field
-target_values = ["Total", "Biallelic", "Multiallelic", "SNPs", "Ti/Tv ratio"]
+def plot_categories_single_image(dataframe):
+    # Define the categories and their corresponding colors
+    categories = ["Total", "Biallelic", "Multiallelic", "SNPs", "Ti/Tv ratio"]
+    colors = ["blue", "green", "orange", "purple", "red"]
+    
+    # Initialize a list to hold data for plotting
+    plot_data = []
+    
+    # Iterate through each category and prepare the data for plotting
+    for category in categories:
+        filtered_df = dataframe[dataframe.apply(lambda row: category in row.to_string(), axis=1)]
+        
+        if not filtered_df.empty:
+            numeric_values = pd.to_numeric(filtered_df.iloc[:, 3], errors='coerce').dropna()
+            
+            for value in numeric_values:
+                plot_data.append({'Category': category, 'Value': value})
+    
+    if not plot_data:
+        print("No valid data found for plotting.")
+        return
+    
+    # Create a new DataFrame for plotting
+    plot_df = pd.DataFrame(plot_data)
 
-# Dictionary to store data for each target value
-plot_data = {key: [] for key in target_values}
+    # Create subplots for each category
+    fig, axes = plt.subplots(nrows=1, ncols=len(categories), figsize=(20, 6))
+    fig.tight_layout(pad=5.0)
 
-def process_csv_files(parent_directory, target_values):
-    # Traverse through each directory and file
-    for root, dirs, files in os.walk(parent_directory):
-        for file_name in files:
-            if file_name.endswith(".csv"):
-                file_path = os.path.join(root, file_name)
-                
-                try:
-                    with open(file_path, 'r') as f:
-                        for line in f:
-                            # Split line by commas
-                            fields = line.strip().split(',')
+    for i, category in enumerate(categories):
+        ax = axes[i]
+        cat_data = plot_df[plot_df["Category"] == category]
+        
+        # Create boxplot for this category
+        sns.boxplot(y="Value", data=cat_data, ax=ax, color=colors[i], width=0.5)  # Adjusted box width
+        
+        # Overlay a strip plot for individual data points
+        sns.stripplot(y="Value", data=cat_data, color="black", alpha=0.6, jitter=True, ax=ax, zorder=2)
+        
+        # Add title and formatting
+        ax.set_title(f"{category}", fontsize=14)
+        ax.tick_params(axis='y', labelsize=10)
+        
+        # Customize y-axis to use M notation
+        ax.yaxis.set_major_formatter(FuncFormatter(format_millions))
+        
+        # Add y-axis label to every plot
+        ax.set_ylabel("Values", fontsize=12)
 
-                            # Check if line has enough fields (at least 5)
-                            if len(fields) < 5:
-                                continue
+    # Overall title
+    fig.suptitle("Box Plots by Category", fontsize=16)
+    plt.show()
 
-                            # Check if the 2nd field matches any target value
-                            if fields[1] in target_values:
-                                # Add the value in the 5th field to the corresponding target's list
-                                try:
-                                    value = float(fields[4])  # Convert to float for box plotting
-                                    plot_data[fields[1]].append(value)
-                                except ValueError:
-                                    print(f"Non-numeric data in 5th field in {file_name}: {fields[4]}")
-                                    continue
-                
-                except Exception as e:
-                    print(f"Error processing {file_name}: {e}")
 
-def create_box_plots(plot_data, output_directory):
-    # Convert dictionary to DataFrame for plotting
-    plot_df = pd.DataFrame(
-        [(key, value) for key, values in plot_data.items() for value in values],
-        columns=["variant", "value"]
-    )
-
-    # Create a figure with subplots (1 row, 5 columns for 5 box plots)
-    fig, axes = plt.subplots(nrows=1, ncols=5, figsize=(20, 6))
-    axes = axes.flatten()
-
-    # Plot each variant type in target_values
-    for idx, (variant, values) in enumerate(plot_data.items()):
-        if values:
-            sns.boxplot(y=plot_df[plot_df["variant"] == variant]["value"], ax=axes[idx])
-            axes[idx].set_title(f"{variant} Box Plot")
-            axes[idx].set_ylabel("Value")
-        else:
-            print(f"No data for variant {variant}")
-
-    # Save combined plot as a PNG image
-    combined_output_path = os.path.join(output_directory, "combined_box_plots.png")
-    plt.tight_layout()
-    plt.savefig(combined_output_path)
-    plt.close()  # Close the plot to free memory
-    print(f"Combined box plot saved to {combined_output_path}")
-
-# Run the functions
-process_csv_files(parent_directory, target_values)
-create_box_plots(plot_data, output_directory)
+# Main script
+if __name__ == "__main__":
+    # Replace with the path to your root directory
+    root_directory = "/home/anna/Claudia/prova_csv"
+    
+    # Step 1: Find and extract relevant data
+    dataframe = find_and_extract_data(root_directory)
+    
+    # Step 2: Plot all categories in a single image
+    plot_categories_single_image(dataframe)
 
