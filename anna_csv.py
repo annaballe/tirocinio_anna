@@ -1,110 +1,125 @@
 import os
-import re
 import pandas as pd
 import seaborn as sns
-from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
-import pylance
+import sys
 
-def find_and_extract_data(root_directory):
-    # Define the file name pattern
-    file_pattern = re.compile(r'^\d+\.vc_metrics\.csv$')
-    # Define the keywords to search for in rows
-    keywords = [",Total,", ",Biallelic,", ",Multiallelic,", ",SNPs,", ",Ti/Tv ratio,"]
-    
-    # Initialize an empty list to hold extracted rows
-    collected_data = []
-    
-    # Traverse the directory and its subdirectories
-    for root, dirs, files in os.walk(root_directory):
-        for file in files:
-            # Check if the file matches the pattern
-            if file_pattern.match(file):
-                file_path = os.path.join(root, file)
-                print(f"Processing file: {file_path}")
-                # Open the file and extract rows containing the keywords
-                with open(file_path, 'r') as f:
-                    for line in f:
-                        if any(keyword in line for keyword in keywords):
-                            collected_data.append(line.strip().split(','))  # Split by comma
-    
-    # Convert collected data to a Pandas DataFrame
-    if collected_data:
-        df = pd.DataFrame(collected_data)
-        return df
-    else:
-        print("No matching data found.")
-        print(pd.DataFrame)
-        return pd.DataFrame()
+# Define paths and keywords
+parent_directory = "/home/anna/Claudia/prova_csv"
+target_strings = ["Total", "Biallelic", "Multiallelic", "SNPs", "Het/Hom ratio"]
 
-def format_millions(x, _):
-    """Custom formatter for y-axis to display values in millions."""
-    if x >= 1e6:
-        return f"{x/1e6:.1f} M"
-    return f"{x:.0f}"
+# Dictionary to store extracted data by category
+data_by_category = {key: [] for key in target_strings}
+data_by_category["Indels"] = []  # Add Indels as a category
 
-def plot_categories_single_image(dataframe):
-    # Define the categories and their corresponding colors
-    categories = ["Total", "Biallelic", "Multiallelic", "SNPs", "Ti/Tv ratio"]
-    colors = ["blue", "green", "orange", "purple", "red"]
-    
-    # Initialize a list to hold data for plotting
+def process_csv_files(parent_directory, target_strings):
+    for root, dirs, files in os.walk(parent_directory):
+        for file_name in files:
+            if file_name.endswith(".csv"):
+                file_path = os.path.join(root, file_name)
+                try:
+                    # Read CSV without assuming specific column names
+                    with open(file_path, 'r') as file:
+                        total_value = 0
+                        snps_value = 0
+                        found_total = False
+                        found_snps = False
+
+                        for line in file:
+                            fields = line.strip().split(',')
+                            for i, field in enumerate(fields):
+                                if field in target_strings:
+                                    # Check if there's a field after the target string
+                                    if i + 1 < len(fields):
+                                        value = float(fields[i + 1])
+                                        data_by_category[field].append(value)
+                                        
+                                        # Track Total and SNPs for calculating Indels
+                                        if field == "Total":
+                                            total_value = value
+                                            found_total = True
+                                        elif field == "SNPs":
+                                            snps_value = value
+                                            found_snps = True
+                        
+                        # Add Indels to the data_by_category
+                        if found_total and found_snps:
+                            indels_value = total_value - snps_value
+                            data_by_category["Indels"].append(indels_value)
+                except Exception as e:
+                    print(f"Error processing {file_name}: {e}")
+
+def create_bar_plots_with_dots(data_by_category):
+    # Convert dictionary to DataFrame for easier plotting
     plot_data = []
+    for category, values in data_by_category.items():
+        for value in values:
+            plot_data.append({"Category": category, "Value": value})
     
-    # Iterate through each category and prepare the data for plotting
-    for category in categories:
-        filtered_df = dataframe[dataframe.apply(lambda row: category in row.to_string(), axis=1)]
-        
-        if not filtered_df.empty:
-            numeric_values = pd.to_numeric(filtered_df.iloc[:, 3], errors='coerce').dropna()
-            
-            for value in numeric_values:
-                plot_data.append({'Category': category, 'Value': value})
-    
-    if not plot_data:
-        print("No valid data found for plotting.")
-        return
-    
-    # Create a new DataFrame for plotting
     plot_df = pd.DataFrame(plot_data)
 
-    # Create subplots for each category
-    fig, axes = plt.subplots(nrows=1, ncols=len(categories), figsize=(20, 6))
-    fig.tight_layout(pad=5.0)
+    # Exclude the 'Total' category from the DataFrame
+    plot_df = plot_df[plot_df["Category"] != "Total"]
 
-    for i, category in enumerate(categories):
-        ax = axes[i]
-        cat_data = plot_df[plot_df["Category"] == category]
-        
-        # Create boxplot for this category
-        sns.boxplot(y="Value", data=cat_data, ax=ax, color=colors[i], width=0.5)  # Adjusted box width
-        
-        # Overlay a strip plot for individual data points
-        sns.stripplot(y="Value", data=cat_data, color="black", alpha=0.6, jitter=True, ax=ax, zorder=2)
-        
-        # Add title and formatting
-        ax.set_title(f"{category}", fontsize=14)
-        ax.tick_params(axis='y', labelsize=10)
-        
-        # Customize y-axis to use M notation
-        ax.yaxis.set_major_formatter(FuncFormatter(format_millions))
-        
-        # Add y-axis label to every plot
-        ax.set_ylabel("Values", fontsize=12)
+    # Rename categories for plotting
+    plot_df["Category"] = plot_df["Category"].replace({
+        "SNPs": "SNVs",
+        "Indels": "Indels"
+    })
 
-    # Overall title
-    fig.suptitle("Box Plots by Category", fontsize=16)
+    # Use a color palette with different shades of blue
+    custom_colors = sns.color_palette("Blues", n_colors=5)
+
+    # Create a bar plot with the hue set to 'Category'
+    plt.figure(figsize=(12, 8))
+
+    # Create bar plot with custom colors, setting 'hue' to 'Category'
+    ax = sns.barplot(x="Category", y="Value", data=plot_df, hue="Category", palette=custom_colors, ci=None, legend=False)
+
+    # Adding dots for each data point (individual values)
+    sns.stripplot(x="Category", y="Value", data=plot_df, color='black', jitter=True, dodge=True, ax=ax, alpha=0.6)
+
+    # Adding titles and labels
+    plt.title("Bar Plot of Variant Categories with Dots")
+    plt.ylabel("Value")
+    plt.xlabel("Category")
+    plt.xticks(rotation=45)
+
+    # Adding value labels on top of each bar
+    for p in ax.patches:
+        ax.annotate(f'{p.get_height():.2f}', (p.get_x() + p.get_width() / 2., p.get_height()),
+                    ha='center', va='center', fontsize=10, color='black', rotation=0,
+                    xytext=(0, 9), textcoords='offset points')
+
+    # Save the plot
+    output_plot_file = "combined_bar_plots.png"
+    plt.tight_layout()
+    plt.savefig(output_plot_file)
+    plt.close()
     plt.show()
+    print(f"Bar plot with dots saved as {output_plot_file}")
 
-
-# Main script
+# Run functions
 if __name__ == "__main__":
-    # Replace with the path to your root directory
-    root_directory = "/home/anna/Claudia/prova_csv"
+    # Check if a directory was provided as an argument
+    if len(sys.argv) < 2:
+        print("Error: No root directory provided.")
+        print("Usage: python your_script.py /path/to/your/directory")
+        sys.exit(1)
+    
+    # Get the directory from the command-line argument
+    root_directory = sys.argv[1]
+    
+    # Validate the directory
+    if not os.path.isdir(root_directory):
+        print(f"Error: {root_directory} is not a valid directory.")
+        sys.exit(1)
+    
+    print(f"Using root directory: {root_directory}")
     
     # Step 1: Find and extract relevant data
-    dataframe = find_and_extract_data(root_directory)
+    process_csv_files(root_directory, target_strings)
     
-    # Step 2: Plot all categories in a single image
-    plot_categories_single_image(dataframe)
+    # Step 2: Plot all categories in a single image (bar plots with dots)
+    create_bar_plots_with_dots(data_by_category)
 
