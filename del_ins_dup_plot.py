@@ -9,7 +9,11 @@ def find_and_extract_data(root_directory):
     # Define the file name pattern
     file_pattern = re.compile(r'^\d+\.sv_metrics\.csv$')
     # Define the keywords to search for rows with the categories
-    keywords = ["Number of deletions (PASS)", "Number of insertions (PASS)"]
+    keywords = [
+        "Number of deletions (PASS)", 
+        "Number of insertions (PASS)",
+        "Number of duplications (PASS)"
+    ]
     
     # Initialize an empty list to hold extracted rows
     collected_data = []
@@ -31,41 +35,48 @@ def find_and_extract_data(root_directory):
     if collected_data:
         cd = pd.DataFrame(collected_data)
         return cd
-    else:   
-
+    else:
+        print("No matching data found.")
         return pd.DataFrame()
 
 def create_bar_plot(data):
     # Create a DataFrame with necessary columns
     data.columns = ["Type", "ID", "Category", "Value", "Percentage"]
     
-    # Filter only the relevant rows for the two categories
-    data_filtered = data[data["Category"].isin(["Number of deletions (PASS)", "Number of insertions (PASS)"])]
+    # Filter only the relevant rows for the three categories
+    data_filtered = data[data["Category"].isin([
+        "Number of deletions (PASS)", 
+        "Number of insertions (PASS)", 
+        "Number of duplications (PASS)"
+    ])]
     
     # Convert 'Value' to numeric (if necessary) and handle missing values
     data_filtered['Value'] = pd.to_numeric(data_filtered['Value'], errors='coerce')
     data_filtered = data_filtered.dropna(subset=['Value'])  # Drop rows with invalid 'Value'
 
-    # Create a bar plot for the two categories
-    plt.figure(figsize=(8, 6))
-    sns.barplot(x="Category", y="Value", data=data_filtered, palette="Set2")
-    sns.stripplot(x="Category", y="Value", data=data_filtered, color='black', jitter=True, size=6, dodge=True)
+    # Create a bar plot for the three categories
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x="Category", y="Value", data=data_filtered, palette="Set2", ci=None)
+    
     # Custom x-tick labels for the categories
-    custom_labels = ["Deletions", "Insertions"]
-    plt.xticks(ticks=[0, 1], labels=custom_labels, rotation=0)  # Adjusted based on the order of categories in the data
+    custom_labels = ["Deletions", "Insertions", "Duplications"]
+    plt.xticks(ticks=range(len(custom_labels)), labels=custom_labels, rotation=0)  # Adjust ticks and labels
+    
+    # Add individual black dots for each data point
+    sns.stripplot(x="Category", y="Value", data=data_filtered, color='black', jitter=True, size=6, dodge=True)
     
     # Add titles and labels
-    plt.title("Number of Deletions and Insertions")
+    plt.title("Number of Deletions, Insertions, and Duplications")
     plt.ylabel("Count")
     
     # Remove unnecessary xlabel ("Category") because we are using custom x-tick labels
     plt.tight_layout()
 
     # Save the plot
-    output_plot_file = "deletions_insertions_bar_plot.png"
+    output_plot_file = "deletions_insertions_duplications_bar_plot_with_dots.png"
     plt.savefig(output_plot_file)
     plt.close()
-    print(f"Bar plot saved as {output_plot_file}")
+    print(f"Bar plot with dots saved as {output_plot_file}")
 
 # Run functions
 if __name__ == "__main__":
@@ -91,3 +102,4 @@ if __name__ == "__main__":
     if not df.empty:
         # Step 2: Create the bar plot for the extracted data
         create_bar_plot(df)
+
