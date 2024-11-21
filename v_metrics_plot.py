@@ -3,6 +3,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import sys
+from matplotlib.ticker import FuncFormatter
 
 # Dictionary to store extracted data by category
 target_strings = ["Total", "Biallelic", "Multiallelic", "SNPs", "Ti/Tv ratio", "Het/Hom ratio"]
@@ -44,6 +45,14 @@ def process_csv_files(parent_directory, target_strings):
                 except Exception as e:
                     print(f"Error processing {file_name}: {e}")
 
+def format_millions(x, _):
+    """Custom formatter for y-axis to display values in millions and thousands."""
+    if x >= 1e6:
+        return f"{x / 1e6:.1f} M"
+    elif x >= 1e3:
+        return f"{x / 1e3:.1f} K"
+    return f"{x:.0f}"
+
 def create_combined_plots(data_by_category):
     # Convert dictionary to DataFrame for easier plotting
     plot_data = []
@@ -84,6 +93,9 @@ def create_combined_plots(data_by_category):
     axes[0].set_xlabel("Category")
     axes[0].tick_params(axis='x', rotation=45)
 
+    # Format y-axis to display 'K' and 'M'
+    axes[0].yaxis.set_major_formatter(FuncFormatter(format_millions))
+
     # Plot 2: Het/Hom and Ti/Tv ratios
     ratios_data = pd.concat([het_hom_ratio, ti_tv_ratio])
     sns.barplot(
@@ -98,6 +110,9 @@ def create_combined_plots(data_by_category):
     axes[1].set_ylabel("Value")
     axes[1].set_xlabel("Category")
     axes[1].tick_params(axis='x', rotation=45)
+
+    # Format y-axis for second plot to display 'K' and 'M'
+    axes[1].yaxis.set_major_formatter(FuncFormatter(format_millions))
 
     # Save the combined plot
     output_plot_file = "variants_plot.png"
