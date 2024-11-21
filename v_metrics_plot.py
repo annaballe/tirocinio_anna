@@ -84,10 +84,6 @@ def create_combined_plots(data_by_category):
     axes[0].set_xlabel("Category")
     axes[0].tick_params(axis='x', rotation=45)
 
-    # Adding value labels on top of each bar
-    for container in axes[0].containers:
-        axes[0].bar_label(container, fmt='%.2f', label_type='edge', fontsize=10, padding=5)
-
     # Plot 2: Het/Hom and Ti/Tv ratios
     ratios_data = pd.concat([het_hom_ratio, ti_tv_ratio])
     sns.barplot(
