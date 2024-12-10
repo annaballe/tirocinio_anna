@@ -1,9 +1,9 @@
 Project notes
 ==============
 
-This repo holds the analysis scripts/notes/summaries for the Genome in a Bottle Tandem Repeat Benchmark.
+Issue di Truvari 
 
-📝[Citation](https://rdcu.be/dFQNN)
+📝[Truvari issue 212: ](https://github.com/ACEnglish/truvari/issues/212)
 
 English, A.C., Dolzhenko, E., Ziaei Jam, H. et al. Analysis and benchmarking of small and large genomic variants across tandem repeats. Nat Biotechnol (2024). https://doi.org/10.1038/s41587-024-02225-z
 
