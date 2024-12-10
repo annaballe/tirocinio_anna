@@ -1,4 +1,4 @@
-Project Adotto
+Project notes
 ==============
 
 This repo holds the analysis scripts/notes/summaries for the Genome in a Bottle Tandem Repeat Benchmark.
