@@ -3,12 +3,14 @@ Project notes
 
 Issue di Truvari 
 
-📝[Truvari issue 212: ](https://github.com/ACEnglish/truvari/issues/212)
+📝[Truvari issue 212](https://github.com/ACEnglish/truvari/issues/212)
 
-English, A.C., Dolzhenko, E., Ziaei Jam, H. et al. Analysis and benchmarking of small and large genomic variants across tandem repeats. Nat Biotechnol (2024). https://doi.org/10.1038/s41587-024-02225-z
 
 The Benchmark
 =============
+
+## Usage 
+
 
 ## 💾 Download
 The current release (v1.0) of the benchmark can be found
