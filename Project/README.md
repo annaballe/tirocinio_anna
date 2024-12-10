@@ -29,7 +29,7 @@ Other Data
 Here the confusion matrix
 
 | Dataset | Positive | Negative |
-| ------- | ------ | --------------- | ------- |
+| ------- | ------ | --------------- | 
 | Positive | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13987414.svg)](https://doi.org/10.5281/zenodo.13987414) | v1.2.1 | 
 | Negative | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6975244.svg)](https://doi.org/10.5281/zenodo.6975244) | v0.1 | 
 
