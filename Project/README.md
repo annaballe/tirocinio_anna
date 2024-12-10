@@ -26,13 +26,12 @@ so a manual installation of the latest development branch is recommended. The RE
 
 Other Data
 ==========
-The full adotto tandem-repeat catalog and pVCF of 86 haplotype-resolved assemblies created as part of this work
-are available via [zenodo.org](zenodo.org). Details of the files as well as download links are below.
+Here the confusion matrix
 
-| Dataset | Zenodo | Current Version | Details |
+| Dataset | Positive | Negative |
 | ------- | ------ | --------------- | ------- |
-| Catalog | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13987414.svg)](https://doi.org/10.5281/zenodo.13987414) | v1.2.1 | [Link](regions/DataDescription.md) | 
-| Variants | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6975244.svg)](https://doi.org/10.5281/zenodo.6975244) | v0.1 | [Link](variants/DataDescription.md) |
+| Positive | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13987414.svg)](https://doi.org/10.5281/zenodo.13987414) | v1.2.1 | 
+| Negative | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6975244.svg)](https://doi.org/10.5281/zenodo.6975244) | v0.1 | 
 
 This repository
 ===============
