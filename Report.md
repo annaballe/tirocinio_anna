@@ -1,8 +1,16 @@
 Report
 ==============
 
-Issue di Truvari 
+Step 1: Parsing VCF Files and Converting to BED
 
+**Input:**
+
+- A compressed VCF file with genomic data on short tandem repeats (STRs).
+
+**Objective:**
+
+- Extract key genomic coordinates and information to produce a BED file for downstream analysis.
+  
 The Benchmark
 =============
 
