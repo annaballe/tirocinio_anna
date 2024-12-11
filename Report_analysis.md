@@ -89,26 +89,27 @@
         ```python
         import pandas as pd
         import sys
-        
+
         # Read input file (use command-line argument to specify the file)
         input_file = sys.argv[1]
-        
+
         # Load data into a DataFrame
-        df = pd.read_csv(input_file, sep='\\t', header=None)  # Assuming tab-separated format
-        
+        df = pd.read_csv(input_file, sep='\t', header=None)  # Assuming tab-separated format
+
         # Add a new column 'state' based on conditions in columns 5, 6, and 8 (adjust as necessary)
         df['state'] = df.apply(
-            lambda row: 'fp' if row[8] == "0" else  # If the value in column 8 (OVERLAPP_50) is "0", mark as 'fp'
-                       'fn' if row[8] == "." else  # If the value in column 8 (OVERLAPP_50) is ".", mark as 'fn'
-                       'tp',  # For other cases, mark as 'tp' (adjust this as needed for your specific conditions)
-            axis=1
+        lambda row: 'fp' if row[8] == int("0") else  # If the value in column 8 (OVERLAPP_50) is "0", mark as 'fp'
+               'tp' if row[8] != int("0") else   # If the value in column 8 (OVERLAPP_50) is ".", mark as 'fn'
+                'tp',   # For other cases, mark as 'tp' (adjust this as needed for your specific conditions)
+        axis=1
         )
-        
-        # Save the output to a new file
-        output_file = input_file.replace('.bed', '_classified.bed')
-        df.to_csv(output_file, sep='\\t', index=False, header=False)
-        
-        print(f"Classification complete. Results saved to {output_file}")
+
+# Save the output to a new file
+output_file = input_file.replace('.bed', '_classified.bed')
+df.to_csv(output_file, sep='\t', index=False, header=False)
+
+print(f"Classification complete. Results saved to {output_file}")
+
         
         ```
         
