@@ -96,8 +96,8 @@ def create_combined_plots(data_by_category):
     # Add value labels on top of each bar in the first plot
     for p in axes[0].patches:
         axes[0].annotate(f'{p.get_height():.2f}', (p.get_x() + p.get_width() / 2., p.get_height()),
-                         ha='center', va='center', fontsize=10, color='black', rotation=0,
-                         xytext=(0, 9), textcoords='offset points')
+                         ha='center', va='center', fontsize=10, color='red', rotation=0,
+                         xytext=(0, 20), textcoords='offset points')
 
     # Format y-axis to display 'K' and 'M'
     axes[0].yaxis.set_major_formatter(FuncFormatter(format_millions))
@@ -120,8 +120,8 @@ def create_combined_plots(data_by_category):
     # Add value labels on top of each bar in the second plot
     for p in axes[1].patches:
         axes[1].annotate(f'{p.get_height():.2f}', (p.get_x() + p.get_width() / 2., p.get_height()),
-                         ha='center', va='center', fontsize=10, color='black', rotation=0,
-                         xytext=(0, 3), textcoords='offset points')
+                         ha='center', va='center', fontsize=10, color='red', rotation=0,
+                         xytext=(0, 20), textcoords='offset points')
 
     # Format y-axis for second plot to display 'K' and 'M'
     axes[1].yaxis.set_major_formatter(FuncFormatter(format_millions))
