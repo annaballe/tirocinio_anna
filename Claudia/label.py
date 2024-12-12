@@ -127,7 +127,7 @@ def create_combined_plots(data_by_category):
     axes[1].yaxis.set_major_formatter(FuncFormatter(format_millions))
 
     # Save the combined plot
-    output_plot_file = "variants_plot.png"
+    output_plot_file = "anna.png"
     plt.tight_layout()
     plt.savefig(output_plot_file)
     plt.close()
