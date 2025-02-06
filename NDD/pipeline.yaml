@@ -1,0 +1,48 @@
+version: '1.0'
+name: GenomePipeline
+description: A pipeline for running full_project and generating genome plots
+
+stages:
+  - name: run_full_project
+    command: |
+      python full_project.py {affected_txt} --folder {vcf_folder}
+    inputs:
+      - vcf_folder: path/to/vcf/folder
+      - affected_txt: path/to/affected.txt
+    outputs:
+      - cases_1.txt
+      - controls_0.txt
+    description: |
+      Run the full_project.py script with the given arguments to generate
+      cases and controls text files.
+    condition: |
+      if not os.path.isfile(affected_txt):
+        raise Exception(f"Error: The file {affected_txt} does not exist.")
+      
+  - name: run_genome_plot
+    command: |
+      python genome_plot_v2.py {cases_file} {plot_output} {controls_file}
+    inputs:
+      - cases_file: cases_1.txt
+      - controls_file: controls_0.txt
+      - plot_output: path/to/output_plot.png
+    description: |
+      Run genome_plot_v2.py to generate a genome plot from the output files
+      produced by full_project.py.
+
+  - name: main
+    description: |
+      The main process that runs the full_project and then generates the plot.
+    run_order:
+      - run_full_project
+      - run_genome_plot
+    condition: |
+      if len(sys.argv) != 4:
+        raise Exception("Usage: python run_pipeline.py <vcf_folder> <affected_txt> <output_plot.png>")
+      if not os.path.isfile('cases_1.txt') or not os.path.isfile('controls_0.txt'):
+        raise Exception("Error: Output files from full_project.py were not generated.")
+      print("Pipeline completed successfully!")
+    inputs:
+      - vcf_folder: path/to/vcf/folder
+      - affected_txt: path/to/affected.txt
+      - plot_output: path/to/output_plot.png
