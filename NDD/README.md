@@ -1,9 +1,20 @@
 ## 💻 Usage
-Truvari uses Python 3.6+ and can be installed with pip:
+What to type on the terminal
 ```
-  python3 -m pip install Truvari 
+python project.py <name_of_the_folder> affected.txt result.png
 ```
 
 
-## ⏩ Quick Start
-
+## ⏩ Libraries
+```
+import os
+import sys
+import gzip
+import shutil
+import pandas as pd
+import argparse
+import subprocess
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.patches as mpatches
+```
