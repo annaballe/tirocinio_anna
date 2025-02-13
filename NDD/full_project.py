@@ -70,10 +70,18 @@ def process_vcf_files(file_paths, output_file, output_dir):
 
     merged_df.fillna(".", inplace=True)
 
-    def count_ones(row):
-        return sum((genotype.count('1')) + (genotype.count('2')) for genotype in row[7:])
+    def count_genotypes(row):
+        total_count = 0
+        for genotype in row[7:]:
+            if genotype == "0/1":
+                total_count += 1
+            elif genotype == "1/1":
+                total_count += 2
+            elif genotype == "1/2":
+                total_count += 1
+        return total_count
 
-    merged_df['AC'] = merged_df.apply(count_ones, axis=1)
+    merged_df['AC'] = merged_df.apply(count_genotypes, axis=1)
 
     merged_df['POS'] = merged_df['POS'].astype(int)
 
@@ -119,38 +127,47 @@ def _process_single_vcf(input_file):
             alt_alleles = [allele.strip('<>').replace('STR', '') for allele in alt.split(',') if allele.startswith('<STR')]
             allele_repeat_counts = {str(i + 1): int(repeat_count) for i, repeat_count in enumerate(alt_alleles)} if alt_alleles else {}
 
-            sample_variants = {name: '.' for name in sample_names}
+            if not repeat_unit or not alt_alleles:
+                continue
 
-            for sample_idx, sample_gt in enumerate(sample_data):
-                genotype = sample_gt.split(':')[0]
-                if genotype in {"./.", "0/0"}:
-                    continue
+            # Initialize base record
+            base_record = {
+                'CHROM': chrom,
+                'POS': pos,
+                'REF': ref,
+                'REP_UNIT': repeat_unit,
+                'VAR_ID': info_dict.get('VARID', '.')
+            }
 
-                if not repeat_unit:
-                    continue
+            # Process each alternative allele
+            for alt_idx, alt_repeats in allele_repeat_counts.items():
+                alt_record = base_record.copy()
+                alt_record['ALT'] = f'STR{alt_repeats}'
+                alt_record['END'] = pos + (len(repeat_unit) * alt_repeats)
+                
+                # Initialize sample genotypes
+                sample_variants = {name: '.' for name in sample_names}
 
-                repeat_unit_length = len(repeat_unit)
-                alleles = genotype.split('/')
-                unique_alleles = set(alleles) - {"0"}
+                # Process each sample's genotype
+                for sample_idx, sample_gt in enumerate(sample_data):
+                    genotype = sample_gt.split(':')[0]
+                    if genotype in {"./.", "0/0"}:
+                        continue
 
-                for allele in unique_alleles:
-                    if allele.isdigit() and (not allele_repeat_counts or allele in allele_repeat_counts):
-                        alt_repeats = allele_repeat_counts.get(allele, ref_repeats)
-                        total_repeat_length = repeat_unit_length * alt_repeats
-                        end_pos = pos + total_repeat_length
+                    alleles = genotype.split('/')
+                    
+                    # Handle different genotype cases
+                    if genotype == f"{alt_idx}/{alt_idx}":
+                        sample_variants[sample_names[sample_idx]] = "1/1"
+                    elif alt_idx in alleles:
+                        other_allele = alleles[1] if alleles[0] == alt_idx else alleles[0]
+                        if other_allele == "0":
+                            sample_variants[sample_names[sample_idx]] = "0/1"
+                        else:
+                            sample_variants[sample_names[sample_idx]] = "0/1"
 
-                        record = {
-                            'CHROM': chrom,
-                            'POS': pos,
-                            'REF': ref,
-                            'ALT': f'STR{alt_repeats}',
-                            'END': end_pos,
-                            'REP_UNIT': repeat_unit,
-                            'VAR_ID': info_dict.get('VARID', '.')
-                        }
-                        sample_variants[sample_names[sample_idx]] = '1'
-                        record.update(sample_variants)
-                        records.append(record)
+                alt_record.update(sample_variants)
+                records.append(alt_record)
 
     df = pd.DataFrame(records)
     return df, sample_names
