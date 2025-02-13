@@ -46,6 +46,40 @@ def get_cytoband_color(stain):
             return 'gray'
     return 'gray'
 
+def plot_density(ax, positions, scaled_width, current_y, color, label):
+    """Plot density with gaps where there's no data"""
+    bins = np.linspace(0, scaled_width, 200)
+    density, bin_edges = np.histogram(positions, bins=bins)
+    
+    # Normalize density
+    if np.max(density) > 0:
+        density = density / np.max(density)
+    
+    # Find bins with data
+    non_zero_bins = density > 0
+    
+    # Split into segments where there is data
+    segments = []
+    current_segment = []
+    
+    for i, (has_data, bin_start) in enumerate(zip(non_zero_bins, bins[:-1])):
+        if has_data:
+            current_segment.append((bin_start, density[i]))
+        elif current_segment:
+            segments.append(current_segment)
+            current_segment = []
+    
+    if current_segment:
+        segments.append(current_segment)
+    
+    # Plot each segment separately
+    for segment in segments:
+        x_values = [x for x, y in segment]
+        y_values = [y for x, y in segment]
+        ax.plot(x_values, [current_y + 0.5 + y for y in y_values], 
+                color=color, linewidth=1.5, label=label)
+        label = None  # Only include label for first segment
+
 def create_karyotype_plot(input_file, output_file, control_file=None):
     """Create genome-wide variant distribution plot."""
     # Define cytoband file directly in the script
@@ -102,21 +136,15 @@ def create_karyotype_plot(input_file, output_file, control_file=None):
         # Plot variant density for affected samples
         chrom_variants = variants[variants['CHROM'] == chrom]
         if len(chrom_variants) > 0:
-            bins = np.linspace(0, scaled_width, 200)
-            density, _ = np.histogram(chrom_variants['POS'].astype(float) * relative_width, bins=bins)
-            density = density / np.max(density) if np.max(density) > 0 else density
-            ax.plot(bins[:-1], current_y + 0.5 + density, color='dodgerblue', 
-                   linewidth=1.5, label='Affected')
+            positions = chrom_variants['POS'].astype(float) * relative_width
+            plot_density(ax, positions, scaled_width, current_y, 'dodgerblue', 'Affected')
         
         # Plot variant density for control samples
         if controls is not None:
             chrom_controls = controls[controls['CHROM'] == chrom]
             if len(chrom_controls) > 0:
-                bins = np.linspace(0, scaled_width, 200)
-                density_ctrl, _ = np.histogram(chrom_controls['POS'].astype(float) * relative_width, bins=bins)
-                density_ctrl = density_ctrl / np.max(density_ctrl) if np.max(density_ctrl) > 0 else density_ctrl
-                ax.plot(bins[:-1], current_y + 0.5 + density_ctrl, color='deeppink', 
-                       linewidth=1.5, label='Control')
+                positions = chrom_controls['POS'].astype(float) * relative_width
+                plot_density(ax, positions, scaled_width, current_y, 'deeppink', 'Control')
         
         # Add chromosome labels
         ax.text(-0.05 * max_size, current_y, chrom, ha='right', va='center')
@@ -133,7 +161,7 @@ def create_karyotype_plot(input_file, output_file, control_file=None):
         ax.spines[spine].set_visible(False)
     
     # Add title and legends
-    plt.title('Genome-wide Variant Distribution', fontsize=25, fontweight='bold', color='navy')
+    plt.title('Genome-wide Variant Distribution', fontsize=50, fontweight='bold', color='navy')
     
     # Create legends
     density_legend = [
